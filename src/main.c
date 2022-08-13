@@ -3,6 +3,18 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#define LED 2
+
+bool led_status = 0;
+
+void toggle_LED(void *pvParameter) {
+    while (1) {
+        led_status = !led_status;
+        gpio_set_level(LED, led_status);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+}
+
 void CAN_Send(void *pvParameter) {
 
     while (1) {
@@ -52,6 +64,9 @@ void CAN_Receive(void *pvParameter) {
 }
 
 void app_main() {
+    // configure LED
+    gpio_set_direction(LED, GPIO_MODE_OUTPUT);
+
     // Initialize configuration structures using macro initializers
     can_general_config_t g_config =
         CAN_GENERAL_CONFIG_DEFAULT(GPIO_NUM_21, GPIO_NUM_19, CAN_MODE_NORMAL);
@@ -74,6 +89,7 @@ void app_main() {
         return;
     }
 
-    xTaskCreate(&CAN_Send, "can_send", 2048, NULL, 5, NULL);
-    // xTaskCreate(&CAN_Receive, "can_receive", 2048, NULL, 5, NULL);
+    // xTaskCreate(&CAN_Send, "can_send", 2048, NULL, 5, NULL);
+    xTaskCreate(&CAN_Receive, "can_receive", 2048, NULL, 5, NULL);
+    xTaskCreate(&toggle_LED, "led", 512, NULL, tskIDLE_PRIORITY, NULL);
 }
